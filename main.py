@@ -349,10 +349,13 @@ with tab1:
 # -----------------------------
 # Tab 2: Choropleth map (no geojson file needed)
 # -----------------------------
-    with tab2:
+ # -----------------------------
+# Tab 2: Map
+# -----------------------------
+with tab2:
     st.subheader("🗺️ 지도")
 
-    safe_mode = st.checkbox("지도 안전모드(외부 GeoJSON 다운로드 안 함)", value=False)
+    safe_mode = st.checkbox("지도 안전모드(외부 GeoJSON 다운로드 안 함)", value=True)
 
     map_metric = st.selectbox(
         "지도에서 색으로 표현할 지표",
@@ -362,64 +365,6 @@ with tab1:
     map_df = view.copy()
 
     if safe_mode:
-        # 무조건 점 지도(외부 다운로드 X)
-        fallback = map_df.copy()
-        fallback["lat"] = fallback["시도"].map(lambda x: SIDO_CENTROIDS.get(x, (np.nan, np.nan))[0])
-        fallback["lon"] = fallback["시도"].map(lambda x: SIDO_CENTROIDS.get(x, (np.nan, np.nan))[1])
-        fallback = fallback.dropna(subset=["lat", "lon"])
-
-        fig2 = px.scatter_mapbox(
-            fallback, lat="lat", lon="lon", size="당월인구", color=map_metric,
-            hover_name="시도", zoom=5.5, height=650
-        )
-        fig2.update_layout(mapbox_style="open-street-map", margin=dict(l=0, r=0, t=0, b=0))
-        st.plotly_chart(fig2, use_container_width=True)
-        st.stop()
-
-    st.subheader("🗺️ 시도 경계 지도(Choropleth)")
-
-    map_metric = st.selectbox(
-        "지도에서 색으로 표현할 지표",
-        ["인구1만명당_총사용량", "인구1만명당_청구금액", "인구증감률(%)", "표준화지수(총사용량)"],
-    )
-
-    map_df = view.dropna(subset=["geo_id"]).copy()
-
-    try:
-        geojson = load_korea_sido_geojson()
-
-        fig = px.choropleth(
-            map_df,
-            geojson=geojson,
-            locations="geo_id",
-            featureidkey="properties.id",
-            color=map_metric,
-            hover_name="시도",
-            hover_data={
-                "당월인구": ":,",
-                "인구증감": ":,",
-                "인구증감률(%)": ":.3f",
-                "의료행위총사용량": ":,",
-                "의료행위청구금액": ":,",
-                "인구1만명당_총사용량": ":.2f",
-                "인구1만명당_청구금액": ":.2f",
-                "표준화지수(총사용량)": ":.2f",
-            },
-            labels={map_metric: map_metric},
-        )
-        fig.update_geos(fitbounds="locations", visible=False)
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.caption("※ 지도 경계는 앱 실행 시 웹에서 자동 로드됩니다(별도 파일 불필요).")
-
-    except Exception as e:
-        st.warning(
-            "시도 경계 GeoJSON을 불러오지 못해(네트워크/접근 제한 등) 점 지도(fallback)로 표시합니다.\n"
-            f"- 오류: {e}"
-        )
-
-        # fallback: scatter_mapbox
         fallback = map_df.copy()
         fallback["lat"] = fallback["시도"].map(lambda x: SIDO_CENTROIDS.get(x, (np.nan, np.nan))[0])
         fallback["lon"] = fallback["시도"].map(lambda x: SIDO_CENTROIDS.get(x, (np.nan, np.nan))[1])
@@ -432,25 +377,15 @@ with tab1:
             size="당월인구",
             color=map_metric,
             hover_name="시도",
-            hover_data={
-                "당월인구": ":,",
-                "인구증감률(%)": ":.3f",
-                "인구1만명당_총사용량": ":.2f",
-                "인구1만명당_청구금액": ":.2f",
-                "표준화지수(총사용량)": ":.2f",
-            },
             zoom=5.5,
             height=650,
         )
-        fig2.update_layout(mapbox_style="open-street-map", margin=dict(l=0, r=0, t=0, b=0))
+        fig2.update_layout(
+            mapbox_style="open-street-map",
+            margin=dict(l=0, r=0, t=0, b=0),
+        )
         st.plotly_chart(fig2, use_container_width=True)
-
-    # quick ranking table
-    show_cols = ["시도", "당월인구", "인구증감률(%)", "인구1만명당_총사용량", "인구1만명당_청구금액", "표준화지수(총사용량)"]
-    st.dataframe(
-        map_df[show_cols].sort_values(map_metric, ascending=False).head(top_n),
-        use_container_width=True,
-    )
+        st.stop()
 
 # -----------------------------
 # Tab 3: Table / ranking
