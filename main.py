@@ -349,7 +349,6 @@ with tab1:
 # -----------------------------
 # Tab 2: Choropleth map (no geojson file needed)
 # -----------------------------
-with tab2:
     with tab2:
     st.subheader("🗺️ 지도")
 
