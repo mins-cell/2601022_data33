@@ -228,6 +228,24 @@ def pop_timeseries_2024(df_pop: pd.DataFrame) -> pd.DataFrame:
 # =========================
 def prep_hira_2024(df_hira: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
+    def prep_hira_2024(df_hira: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if df_hira.empty:
+        return pd.DataFrame({"sido": []}), pd.DataFrame()
+
+    # ✅ 디버그: 실제 컬럼명 먼저 보여주기
+    st.sidebar.write("심평원 컬럼 미리보기:", list(df_hira.columns)[:30])
+
+    col_year = next((c for c in df_hira.columns if "년도" in c or "연도" in c), None)
+    col_sido = next((c for c in df_hira.columns if "시도" in c or "시·도" in c or "시_도" in c), None)
+
+    # ✅ 컬럼 탐색 실패 시에도 'sido' 포함 DF 반환
+    if not (col_year and col_sido):
+        st.warning(f"심평원 데이터에서 년도/시도 컬럼 자동 탐색 실패: year={col_year}, sido={col_sido}")
+        return pd.DataFrame({"sido": []}), pd.DataFrame()
+
+    # (이하 기존 코드 동일)
+    ...
+
     심평원 진료통계에서:
     - sido_summary_2024: 시도별 총 청구금액/환자수(가능하면) 집계
     - top_actions_2024: 시도별 의료행위 TopN 뽑을 수 있는 long 형태
