@@ -293,9 +293,27 @@ def prep_hira_2024(df_hira: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 # 6) 결합 + 지도용 데이터 준비
 # =========================
 def merge_for_map(pop_sido: pd.DataFrame, hira_sido: pd.DataFrame) -> pd.DataFrame:
+   def ensure_sido_col(df: pd.DataFrame) -> pd.DataFrame:
+    """빈 DF여도 merge 가능한 최소 형태(sido 컬럼 포함)로 보정"""
+    if df is None or df.empty:
+        return pd.DataFrame({"sido": []})
+    if "sido" not in df.columns:
+        # 있었는데 이름을 못 맞춘 경우를 대비해: 첫 번째 컬럼을 sido로 가정하지 말고 경고
+        st.warning(f"데이터프레임에 'sido' 컬럼이 없습니다. columns={list(df.columns)}")
+        return pd.DataFrame({"sido": []})
+    return df
+
+def merge_for_map(pop_sido: pd.DataFrame, hira_sido: pd.DataFrame) -> pd.DataFrame:
+    pop_sido = ensure_sido_col(pop_sido)
+    hira_sido = ensure_sido_col(hira_sido)
+
     df = pd.merge(pop_sido, hira_sido, on="sido", how="outer")
 
-    # 결합 지표
+    # 결합 지표 계산에 필요한 컬럼이 없어도 안전하도록 기본 컬럼 생성
+    for c in ["pop_avg_2024", "pop_change_2024", "amount_2024", "patients_2024"]:
+        if c not in df.columns:
+            df[c] = np.nan
+
     df["amount_per_capita"] = df["amount_2024"] / df["pop_avg_2024"]
     df["patients_per_1000"] = (df["patients_2024"] / df["pop_avg_2024"]) * 1000
     return df
