@@ -16,14 +16,15 @@ st.set_page_config(page_title="지역별 의료행위 × 인구증감 대시보�
 # -----------------------------
 # CSV loader (auto-encoding)
 # -----------------------------
-def read_csv_auto(uploaded_file) -> pd.DataFrame:
-    raw = uploaded_file.getvalue()
+def read_csv_from_path(path: str) -> pd.DataFrame:
+    # 로컬 파일은 보통 utf-8-sig 또는 cp949가 많아서 둘 다 시도
     for enc in ["utf-8-sig", "cp949", "euc-kr", "utf-8"]:
         try:
-            return pd.read_csv(pd.io.common.BytesIO(raw), encoding=enc)
+            return pd.read_csv(path, encoding=enc)
         except Exception:
             continue
-    return pd.read_csv(pd.io.common.BytesIO(raw))
+    return pd.read_csv(path)
+
 
 
 def to_numeric_safe(s: pd.Series) -> pd.Series:
@@ -230,17 +231,39 @@ def aggregate_hira_by_sido(hira_df: pd.DataFrame, year: int, fillna_zero: bool =
 st.title("📍 지역별 의료행위(심평원) × 인구증감(주민등록) 대시보드")
 
 with st.sidebar:
-    st.header("1) 파일 업로드")
-    hira_file = st.file_uploader("심평원 의료행위 CSV 업로드", type=["csv"])
-    pop_file = st.file_uploader("주민등록 인구증감 CSV 업로드", type=["csv"])
+    st.header("1) 파일 설정")
 
-    st.divider()
-    st.header("2) 옵션")
-    fillna_zero = st.checkbox("결측치를 0으로 처리(권장)", value=True)
-    top_n = st.slider("Top N (랭킹/표)", 5, 30, 15)
+    use_repo_files = st.checkbox("GitHub(레포) 내 CSV를 기본으로 사용", value=True)
 
-if not hira_file or not pop_file:
-    st.info("왼쪽 사이드바에서 **심평원 CSV**와 **인구증감 CSV**를 업로드하면 대시보드가 생성됩니다.")
+    hira_file = st.file_uploader("심평원 의료행위 CSV 업로드(선택)", type=["csv"])
+    pop_file = st.file_uploader("주민등록 인구증감 CSV 업로드(선택)", type=["csv"])
+# (레포에 들어있는 기본 파일 경로) - 실제 파일명에 맞게 수정!
+DEFAULT_HIRA_PATH = "건강보험심사평가원_의료행위별 시도별 건강보험 진료 통계_20241231.csv"
+DEFAULT_POP_PATH  = "202512_202512_주민등록인구기타현황(인구증감)_월간.csv"
+
+try:
+    if use_repo_files and (hira_file is None) and (pop_file is None):
+        hira_raw = read_csv_from_path(DEFAULT_HIRA_PATH)
+        pop_raw  = read_csv_from_path(DEFAULT_POP_PATH)
+        st.sidebar.success("레포 내 기본 CSV를 로드했습니다.")
+    else:
+        if (hira_file is None) or (pop_file is None):
+            st.info("왼쪽 사이드바에서 CSV를 업로드하거나, '레포 내 CSV 사용'을 켜주세요.")
+            st.stop()
+
+        hira_raw = read_csv_auto(hira_file)
+        pop_raw  = read_csv_auto(pop_file)
+
+except FileNotFoundError as e:
+    st.error(
+        "레포 내 CSV 파일을 찾지 못했습니다.\n"
+        "1) 파일명이 코드의 DEFAULT_*_PATH와 동일한지\n"
+        "2) 파일이 app.py와 같은 폴더(또는 지정한 경로)에 있는지 확인해주세요.\n\n"
+        f"에러: {e}"
+    )
+    st.stop()
+except Exception as e:
+    st.error(f"CSV 로딩 오류: {e}")
     st.stop()
 
 # Load
