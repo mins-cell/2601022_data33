@@ -5,6 +5,9 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 import pydeck as pdk
+import json
+import requests
+
 
 st.set_page_config(page_title="지역별 의료행위 × 인구증감 대시보드", layout="wide")
 
