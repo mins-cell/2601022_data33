@@ -350,6 +350,33 @@ with tab1:
 # Tab 2: Choropleth map (no geojson file needed)
 # -----------------------------
 with tab2:
+    with tab2:
+    st.subheader("🗺️ 지도")
+
+    safe_mode = st.checkbox("지도 안전모드(외부 GeoJSON 다운로드 안 함)", value=False)
+
+    map_metric = st.selectbox(
+        "지도에서 색으로 표현할 지표",
+        ["인구1만명당_총사용량", "인구1만명당_청구금액", "인구증감률(%)", "표준화지수(총사용량)"],
+    )
+
+    map_df = view.copy()
+
+    if safe_mode:
+        # 무조건 점 지도(외부 다운로드 X)
+        fallback = map_df.copy()
+        fallback["lat"] = fallback["시도"].map(lambda x: SIDO_CENTROIDS.get(x, (np.nan, np.nan))[0])
+        fallback["lon"] = fallback["시도"].map(lambda x: SIDO_CENTROIDS.get(x, (np.nan, np.nan))[1])
+        fallback = fallback.dropna(subset=["lat", "lon"])
+
+        fig2 = px.scatter_mapbox(
+            fallback, lat="lat", lon="lon", size="당월인구", color=map_metric,
+            hover_name="시도", zoom=5.5, height=650
+        )
+        fig2.update_layout(mapbox_style="open-street-map", margin=dict(l=0, r=0, t=0, b=0))
+        st.plotly_chart(fig2, use_container_width=True)
+        st.stop()
+
     st.subheader("🗺️ 시도 경계 지도(Choropleth)")
 
     map_metric = st.selectbox(
