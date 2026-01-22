@@ -198,7 +198,15 @@ with tab1:
             kpi_card("상관계수 r", f"{r:.2f}", "0에 가까울수록 선형 관계 약함")
             kpi_card("회귀식", f"y = {a:.4g}·x + {b:.4g}", "단순선형(참고용)")
         st.markdown('<div class="section-title">TOP 5 (Y 기준)</div>', unsafe_allow_html=True)
+
         show_cols = ["sido", x_key, y_key, "patients_per_1k", "amount_per_capita"]
+        show_cols = ["sido", x_key, y_key, "patients_per_1k", "amount_per_capita"]
+        show_cols = list(dict.fromkeys(show_cols))  # ✅ 중복 컬럼 제거(순서 유지)
+
+        st.dataframe(merged.sort_values(y_key, ascending=False)[show_cols].head(5),use_container_width=True, height=240)
+
+        
+
         st.dataframe(merged.sort_values(y_key, ascending=False)[show_cols].head(5), use_container_width=True, height=240)
 
 with tab2:
